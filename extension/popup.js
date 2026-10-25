@@ -1,4 +1,4 @@
-import {normalizeCapture,toProject} from './shared/capture-format.js';
+import {normalizeCapture} from './shared/capture-format.js';
 const $=id=>document.getElementById(id);let pending=null,busy=false;
 async function call(msg){const result=await chrome.runtime.sendMessage(msg);if(!result?.ok)throw Error(result?.error||'The extension did not respond.');return result;}
 async function run(fn){if(busy)return;busy=true;$('error').textContent='';try{await fn();}catch(error){$('error').textContent=error.message;}finally{busy=false;}}
@@ -12,6 +12,8 @@ for(const mode of ['page','section'])$(mode).addEventListener('click',()=>run(as
 $('refresh').addEventListener('click',()=>run(refresh));
 $('send').addEventListener('click',()=>run(async()=>{const result=await call({type:'SC_SEND',tabId:Number($('destination').value)});$('status').textContent=result.status==='inserted'?'This capture was already inserted.':'Capture staged. Switch to Sorcerii to review and confirm insertion.';await refresh();}));
 $('discard').addEventListener('click',()=>run(async()=>{if(!confirm('Discard this pending capture? Download JSON first if you want to keep it.'))return;await call({type:'SC_DISCARD'});await refresh();}));
-$('download').addEventListener('click',()=>run(async()=>{if(!pending)return;const payload={...toProject(pending.capture),capture:pending.capture},blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(pending.capture.source.title.replace(/[^a-zA-Z0-9_-]+/g,'-').slice(0,60)||'website')+'.capture.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);$('status').textContent='JSON downloaded. Import it in Sorcerii to review, or keep it as a backup.';}));
+$('download').addEventListener('click',()=>run(async()=>{if(!pending)return;const payload=pending.capture,blob=new Blob([JSON.stringify(payload)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(pending.capture.source.title.replace(/[^a-zA-Z0-9_-]+/g,'-').slice(0,60)||'website')+'.capture.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);$('status').textContent='JSON downloaded. Import it in Sorcerii to review, or keep it as a backup.';}));
 chrome.storage.onChanged.addListener(changes=>{if(changes.pending&&!busy)run(refresh);});
 run(refresh);
+
+document.querySelector('.version').textContent=chrome.runtime.getManifest().version;

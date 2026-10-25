@@ -30,7 +30,7 @@ async function handle(msg,sender){
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id||!/^https?:\/\//i.test(tab.url||''))throw Error('Open a normal website tab first. Browser settings and extension stores cannot be captured.');
   if(allowedEditor(tab.url))throw Error('Open the source website, then activate capture there.');
   const token=crypto.randomUUID();await chrome.storage.session.set({run:{tabId:tab.id,token,startedAt:Date.now()}});
-  await chrome.scripting.executeScript({target:{tabId:tab.id},files:['content.js']});
+  await chrome.scripting.executeScript({target:{tabId:tab.id},files:['source-styles.js','content.js']});
   await chrome.scripting.executeScript({target:{tabId:tab.id},func:options=>globalThis.__sorceriiCapture.start(options),args:[{mode:msg.mode==='page'?'page':'section',token,props:STYLE_PROPS,tags:[...TAGS]}]});return {ok:true};
  }
  if(msg.type==='SC_DISCARD'){await chrome.storage.local.remove('pending');await chrome.action.setBadgeText({text:''});return {ok:true};}
