@@ -10,7 +10,7 @@
  const label=el=>el.getAttribute('aria-label')||el.id&&el.localName+' #'+el.id||el.localName+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(/\s+/).slice(0,2).join('.'):'');
  let active=null;
  function snapshot(root,options){
-  const tags=new Set(options.tags),warnings=new Set(),props=options.props;let count=0,characters=0;
+  const tags=new Set(options.tags),warnings=new Set(),props=options.props;let count=0,characters=0,removed=0;
   const source=globalThis.__sorceriiSourceStyles?.create(root,props,{normalizeMotion:options.normalizeMotion!==false});
   const visit=(el,depth)=>{
    if(el.nodeType===3){characters+=el.textContent.length;if(characters>1000000)throw Error('Too much text. Select a smaller section.');return el.textContent;}
@@ -30,9 +30,11 @@
    if(['video','audio'].includes(original)){const media=el.currentSrc||el.getAttribute('src')||el.querySelector?.('source[src]')?.getAttribute('src');if(media)try{attrs.src=new URL(media,document.baseURI).href;}catch{}}
    const sourceStyles=source?.capture(el,computed);
    const children=[];if(!VOID.has(tag)&&original!=='textarea')for(const child of el.childNodes){const n=visit(child,depth+1);if(n!==null)children.push(n);}
+   if(options.simplifyText&&children.every(n=>typeof n==='string')&&source?.canFlattenText(el,computed)){removed++;return children.join('');}
    return {tag,name:label(el).slice(0,100),attrs,...(sourceStyles?{styles:{},sourceStyles}:{styles}),children};
   };
   const tree=visit(root,0);
+  if(removed)warnings.add('Simplified '+removed+' animation-only text wrappers. Layout containers and styled text were retained.');
   return {format:'sorcerii-capture',version:2,id:crypto.randomUUID(),mode:options.mode,source:{url:location.href,title:document.title||location.hostname,width:innerWidth,height:innerHeight},createdAt:new Date().toISOString(),warnings:[...(source?[...source.warnings]:['Current-width fallback. Source stylesheets were unavailable.']), 'Pseudo-elements and source JavaScript behavior are not imported. Remote images and fonts remain linked to their source.',...warnings],fontFaces:source?.fontFaces||[],fontStylesheets:source?.fontStylesheets||[],breakpoints:source?.breakpoints||[],root:tree};
  }
  function preview(root){let count=0,shown=0;const visit=(el,depth)=>{
@@ -56,7 +58,7 @@
   document.documentElement.append(host);const body=shadow.querySelector('.body'),outline=shadow.querySelector('.outline');
   const draw=()=>{const r=state.root?.getBoundingClientRect();outline.style.display=r?'block':'none';if(r)Object.assign(outline.style,{top:r.top+'px',left:r.left+'px',width:r.width+'px',height:r.height+'px'});};
   const review=()=>{draw();if(!state.frozen){body.innerHTML='<p>Hover over a section, then click to select it.</p><p class="muted">↑ Parent · ↓ First child · Esc Cancel</p>';return;}
-   try{const p=preview(state.root);body.innerHTML='<p><strong>'+esc(options.mode==='page'?'Entire page':label(state.root))+'</strong></p><p class="muted">'+p.count+' elements · '+Math.round(state.root.getBoundingClientRect().width)+'px wide</p><div class="actions"><button data-command="parent">Parent</button><button data-command="child">First child</button><button data-command="reselect">Reselect</button></div><div class="tree">'+p.html+'</div><label><input type="checkbox" class="lazy" checked>Load lazy content before capture</label><label><input type="checkbox" class="motion" checked>Finish recognized text reveal effects</label><p class="muted">Source width rules are retained where readable. Graphics and site behavior may be omitted. Form values are excluded.</p><div class="actions"><button class="primary" data-command="capture">Confirm capture</button><button data-command="cancel">Cancel</button></div>';if(options.mode==='page')body.querySelectorAll('[data-command="parent"],[data-command="child"],[data-command="reselect"]').forEach(b=>b.disabled=true);}
+   try{const p=preview(state.root);body.innerHTML='<p><strong>'+esc(options.mode==='page'?'Entire page':label(state.root))+'</strong></p><p class="muted">'+p.count+' elements · '+Math.round(state.root.getBoundingClientRect().width)+'px wide</p><div class="actions"><button data-command="parent">Parent</button><button data-command="child">First child</button><button data-command="reselect">Reselect</button></div><div class="tree">'+p.html+'</div><label><input type="checkbox" class="lazy" checked>Load lazy content before capture</label><label><input type="checkbox" class="motion" checked>Finish recognized text reveal effects</label><label><input type="checkbox" class="simplify">Simplify animation text</label><p class="muted">Merges plain letter/word animation fragments. Keeps layout wrappers, links and differently styled text.</p><p class="muted">Source width rules are retained where readable. Graphics and site behavior may be omitted. Form values are excluded.</p><div class="actions"><button class="primary" data-command="capture">Confirm capture</button><button data-command="cancel">Cancel</button></div>';if(options.mode==='page')body.querySelectorAll('[data-command="parent"],[data-command="child"],[data-command="reselect"]').forEach(b=>b.disabled=true);}
    catch(e){body.innerHTML='<p class="error">'+esc(e.message)+'</p><button data-command="reselect">Reselect</button>';}
   };
   const inOverlay=e=>e.composedPath().includes(host);
@@ -72,7 +74,7 @@
    if(command==='parent'&&state.root?.parentElement!==document.documentElement){state.root=state.root.parentElement;review();return;}
    if(command==='child'){state.root=state.root?.firstElementChild||state.root;review();return;}
    if(command!=='capture'||!state.root?.isConnected)return;
-   state.busy=true;const load=body.querySelector('.lazy')?.checked;options.normalizeMotion=body.querySelector('.motion')?.checked!==false;body.innerHTML='<p role="status">Capturing the hierarchy…</p><p class="muted">'+(load?'Loading lazy content. You can cancel above.':'Reading the loaded page.')+'</p>';
+   state.busy=true;const load=body.querySelector('.lazy')?.checked;options.normalizeMotion=body.querySelector('.motion')?.checked!==false;options.simplifyText=body.querySelector('.simplify')?.checked===true;body.innerHTML='<p role="status">Capturing the hierarchy…</p><p class="muted">'+(load?'Loading lazy content. You can cancel above.':'Reading the loaded page.')+'</p>';
    try{if(load)await lazyLoad(state.root,state);if(state.cancelled)return;if(!state.root.isConnected)throw Error('The selected section was replaced by the site. Reselect it.');const capture=snapshot(state.root,options);if(state.cancelled)return;const result=await chrome.runtime.sendMessage({type:'SC_CAPTURED',token:options.token,capture});if(!result?.ok)throw Error(result?.error||'Could not save capture.');state.close();}
    catch(err){if(!state.cancelled){state.busy=false;review();const p=document.createElement('p');p.className='error';p.textContent=err.message;body.prepend(p);}}
   });

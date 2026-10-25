@@ -28,7 +28,13 @@ export function safeStyle(value,key){
  }
  return /^[a-zA-Z0-9#.,()%\s/+\-'":]*$/.test(rest)&&!/url\s*\(|\/\*|\*\/|expression|javascript|vbscript|import|behavior|binding/i.test(rest)?v:'';
 }
-export function cleanStyles(input){const out={};for(const [k,v]of Object.entries(input||{}))if(STYLE_PROPS.includes(k)&&typeof v==='string'){const safe=safeStyle(v,k);if(safe)out[k]=safe;}return out;}
+export function cleanStyles(input){const out={};for(const [k,v]of Object.entries(input||{}))if(STYLE_PROPS.includes(k)&&typeof v==='string'){const safe=safeStyle(v,k);if(safe)out[k]=safe;}
+ // Remove shorthands only when every longhand is present in this same declaration block.
+ // Responsive deltas remain independent, so a reset at a breakpoint is never lost.
+ const groups={gap:['rowGap','columnGap'],overflow:['overflowX','overflowY'],borderRadius:['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']};
+ for(const kind of ['Width','Style','Color'])groups['border'+kind]=['Top','Right','Bottom','Left'].map(side=>'border'+side+kind);
+ for(const [key,parts]of Object.entries(groups))if(parts.every(part=>Object.hasOwn(out,part)))delete out[key];
+ return out;}
 export function cleanSourceStyles(value){
  if(!value||typeof value!=='object'||!Array.isArray(value.rules)||value.rules.length>64)throw Error('Invalid source responsive styles.');
  const rules=value.rules.map(r=>{if(!r||!Number.isFinite(r.minWidth)||!Number.isFinite(r.maxWidth)||r.minWidth<0||r.maxWidth>20000||r.minWidth>r.maxWidth)throw Error('Invalid source width range.');return {minWidth:r.minWidth,maxWidth:r.maxWidth,minExclusive:!!r.minExclusive,maxExclusive:!!r.maxExclusive,styles:cleanStyles(r.styles)};});

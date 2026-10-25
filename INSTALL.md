@@ -1,4 +1,4 @@
-# Install Sorcerii Capture 0.2.1
+# Install Sorcerii Capture 0.2.2
 
 This is an unpacked development build. Browser-specific end-to-end verification is still pending.
 
@@ -37,10 +37,16 @@ The extension requests access to the page you activate it on and the named Sorce
 1. In GitHub Desktop, select sorcerii-capture and click Fetch origin, then Pull origin when available.
 2. In Opera, open opera://extensions and click Reload on Sorcerii Capture.
 3. Refresh any source website and Sorcerii tabs that were already open.
-4. Open the extension to confirm its version reads 0.2.1.
+4. Open the extension to confirm its version reads 0.2.2.
 
 Load the clone's extension/ folder once. Keep that folder in place so future pulls update the installed files without reinstalling. Other Chromium browsers follow the same steps in their extension manager.
 
 Development extensions cannot silently replace their executable code. Pull and Reload are required until a signed browser-store release supplies browser-managed updates.
 
 Capture the source again after this update. Old 0.1 files remain importable, but contain no source breakpoint rules to recover. Clear or download an older pending capture before making a new one. JSON downloads now contain a compact capture envelope rather than two copies of the element tree.
+
+## Import feedback and optional cleanup in 0.2.2
+
+Send to Sorcerii shows progress and opens the chosen destination tab. Confirm Insert elements there. Completion appears on the canvas with an element count and Undo import, and the extension retains a confirmed completion status for its next popup opening. Failures leave the capture available for retry.
+
+Enable Simplify animation text in the source review to remove neutral recognized letter/word animation spans. Leave it off for original hierarchy preservation. It does not collapse general layout containers or import animations. Existing captures need to be recaptured to use the cleanup.

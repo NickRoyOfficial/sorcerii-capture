@@ -2,7 +2,7 @@
 
 Browser extension for capturing an entire web page or a selected section and importing its element hierarchy into Sorcerii Studio.
 
-**Status: development build 0.2.1.** Page/section capture, source width rules, fluid sizing, font references, motion cleanup, local conversion and confirmed editor delivery are implemented. Browser-specific end-to-end verification is pending.
+**Status: development build 0.2.2.** Page/section capture, source width rules, fluid sizing, font references, motion cleanup, local conversion and confirmed editor delivery are implemented. Browser-specific end-to-end verification is pending.
 
 See [INSTALL.md](INSTALL.md) for installation and current limitations.
 
@@ -15,6 +15,14 @@ See [INSTALL.md](INSTALL.md) for installation and current limitations.
 - Import ordinary, independently editable elements. Component creation remains explicit.
 - Support Opera, Chrome, Edge and Brave through one Chromium codebase, with browser-specific verification.
 - Keep SVG conversion outside the initial scope.
+
+## Import feedback and lighter captures
+
+Send shows progress and opens the chosen Sorcerii tab for the existing destination confirmation. Successful insertion shows an animated, dismissible canvas confirmation with element count and Undo import. The extension remembers its last confirmed import, so reopening its popup shows completion. Sending/staging alone never reports insertion success.
+
+Enable **Simplify animation text** during source review to merge recognized, visually neutral split-letter/word animation spans. It is opt-in; ordinary wrappers, the selected root, links, IDs, styled text and flex/grid items stay intact. Differences across readable width rules prevent simplification. No source animation scripts are imported. Redundant CSS shorthands are dropped only when all their longhands exist in the same block.
+
+On the recorded Ostack fixture, this removes 298 of 1,744 elements (17%) and reduces capture JSON by about 16%. This is a regression fixture result, not a new browser visual-fidelity verification. Recapture after updating; existing imports are not rewritten.
 
 ## Repository boundaries
 

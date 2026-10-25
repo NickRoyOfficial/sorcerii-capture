@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 import {STYLE_PROPS,TAGS,normalizeCapture,toProject} from '../extension/shared/capture-format.js';
-function capture(css,html){const dom=new JSDOM('<style>'+css+'</style>'+html,{url:'https://example.com/path/',runScripts:'outside-only'});dom.window.crypto.randomUUID=()=>crypto.randomUUID();for(const file of ['source-styles.js','content.js'])dom.window.eval(fs.readFileSync(new URL('../extension/'+file,import.meta.url),'utf8'));return {dom,c:normalizeCapture(JSON.parse(JSON.stringify(dom.window.__sorceriiCapture.snapshot(dom.window.document.body,{mode:'page',tags:[...TAGS],props:STYLE_PROPS}))))};}
+function capture(css,html,options={}){const dom=new JSDOM('<style>'+css+'</style>'+html,{url:'https://example.com/path/',runScripts:'outside-only'});dom.window.crypto.randomUUID=()=>crypto.randomUUID();for(const file of ['source-styles.js','content.js'])dom.window.eval(fs.readFileSync(new URL('../extension/'+file,import.meta.url),'utf8'));return {dom,c:normalizeCapture(JSON.parse(JSON.stringify(dom.window.__sorceriiCapture.snapshot(dom.window.document.body,{mode:'page',tags:[...TAGS],props:STYLE_PROPS,...options}))))};}
 const stylesAt=(n,width)=>Object.assign({},n.sourceStyles.base,...n.sourceStyles.rules.filter(r=>(r.minExclusive?width>r.minWidth:width>=r.minWidth)&&(r.maxExclusive?width<r.maxWidth:width<=r.maxWidth)).map(r=>r.styles));
 test('authored fluid sizes, variable shorthands, exact source breakpoints and cascade survive',()=>{
  const {c}=capture(':root{--space:24px;--container:1640px}.container{width:100%;max-width:var(--container);margin:0 auto;padding:var(--space);display:grid;grid-template-columns:1fr 1fr} @media(max-width:991px){:root{--space:16px}.container{grid-template-columns:1fr}} @media(max-width:767px){.container{padding:8px}} @media(min-width:1440px){.container{max-width:1400px}} .container{height:auto} .container.special{width:90%} #test{width:95%} .container{width:80%!important}', '<main class="container special" id="test"><span>Text</span></main>');
@@ -18,4 +18,20 @@ test('closed responsive overlays preserve pointer-events so they do not block pa
  const {c}=capture('.overlay{display:none}@media(max-width:991px){.overlay{display:block;position:fixed;inset:0;opacity:0;pointer-events:none}}','<div class="overlay"></div><h1>Reachable</h1>');
  assert.equal(stylesAt(c.root.children[0],390).pointerEvents,'none');
  assert.equal(stylesAt(c.root.children[0],390).opacity,'0');
+});
+
+const splitHTML='<p>Hi <span class="gsap_split_word"><span class="gsap_split_letter-mask"><span class="gsap_split_letter">T</span></span><span class="gsap_split_letter-mask"><span class="gsap_split_letter">e</span></span><span class="gsap_split_letter">x</span><span class="gsap_split_letter">t</span></span>!</p>';
+const splitCSS='span{display:inline-block;position:relative}.gsap_split_letter-mask{overflow:clip}';
+test('optional text cleanup merges animation fragments without touching the source DOM or ordinary wrappers',()=>{
+ const normal=capture(splitCSS,splitHTML),clean=capture(splitCSS,splitHTML,{simplifyText:true});
+ assert.ok(clean.c.count<normal.c.count);assert.deepEqual(clean.c.root.children[0].children,['Hi ','Text','!']);
+ assert.ok(clean.dom.window.document.querySelector('.gsap_split_letter'));assert.ok(clean.c.warnings.some(w=>w.includes('Simplified 7')));
+ const preserved=capture(splitCSS,'<div><span>Ordinary</span></div>',{simplifyText:true});assert.equal(preserved.c.root.children[0].children[0].tag,'span');
+});
+test('text cleanup preserves root, semantic IDs, decorated or responsive text, layout and flex items',()=>{
+ const css=splitCSS+'.red{color:red}@media(max-width:767px){.responsive{font-size:30px}}';
+ const html='<p><span class="gsap_split_letter" id="anchor">A</span><span class="gsap_split_letter" style="color:red">B</span><span class="gsap_split_letter" style="padding-left:2px">C</span><span class="gsap_split_letter responsive">D</span></p><div style="display:flex"><span class="gsap_split_letter">E</span></div>';
+ const {c}=capture(css,html,{simplifyText:true});assert.equal(c.root.children[0].children.length,4);for(const child of c.root.children[0].children)assert.equal(typeof child,'object');assert.equal(c.root.children[1].children[0].tag,'span');
+ const responsive=capture(splitCSS+'@media(max-width:767px){.gsap_split_letter{font-size:30px}}','<p><span class="gsap_split_letter">Mobile style</span></p>',{simplifyText:true});assert.equal(responsive.c.root.children[0].children[0].tag,'span');
+ const disabled=capture(splitCSS,splitHTML,{simplifyText:true,normalizeMotion:false});assert.ok(disabled.c.root.children[0].children[1].tag);
 });

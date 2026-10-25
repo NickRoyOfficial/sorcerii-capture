@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: development build 0.2.1 implements milestones 1 to 3. Automated checks cover the contract, hierarchy preservation, native insertion and failure paths. Whole-page edge cases and per-browser verification remain in progress. Readable source CSS width queries now remain scoped to captured elements. Cross-origin stylesheet restrictions and source JavaScript behavior remain limitations.
+Status: development build 0.2.2 implements milestones 1 to 3. Automated checks cover the contract, hierarchy preservation, native insertion and failure paths. Whole-page edge cases and per-browser verification remain in progress. Readable source CSS width queries now remain scoped to captured elements. Cross-origin stylesheet restrictions and source JavaScript behavior remain limitations.
 
 ## User requirements
 
@@ -64,7 +64,7 @@ Improve style fidelity after hierarchy is reliable. Prototype breakpoint capture
 
 ## Deliberate limits
 
-Backend behavior, authentication flows, shopping carts, canvas/WebGL effects and arbitrary source JavaScript are not reconstructed. Complex motion and unavailable assets need explicit handling. No automatic wrapper simplification in the initial release.
+Backend behavior, authentication flows, shopping carts, canvas/WebGL effects and arbitrary source JavaScript are not reconstructed. Complex motion and unavailable assets need explicit handling. General wrapper collapsing remains excluded. Version 0.2.2 offers explicit opt-in cleanup only for recognized neutral animation-text spans, with readable-breakpoint/style/semantic guards.
 
 ## Reference inspection
 

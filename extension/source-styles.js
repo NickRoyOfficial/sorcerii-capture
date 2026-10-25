@@ -79,16 +79,39 @@
    }
    const result={vars,styles};byWidth.set(width,result);return result;
   }
+  const snapshots=new WeakMap();
   function capture(el,computed){
+   if(snapshots.has(el))return snapshots.get(el);
    const parent=el.parentElement?getComputedStyle(el.parentElement):null,defaults={};
    for(const key of props){const v=computed[key];if(typeof v!=='string'||!v)continue;defaults[key]=key in layoutDefaults?layoutDefaults[key]:inherited.has(key)&&el!==root&&parent?.[key]===v?'inherit':v;}
    // Root sizing describes normal flow rather than its measured document rectangle.
    if(el===root&&el.localName==='body')Object.assign(defaults,{width:'auto',height:'auto',marginTop:'0px',marginRight:'0px',marginBottom:'0px',marginLeft:'0px'});
    const all=ranges.map(r=>({...defaults,...at(el,r.sample).styles})),base=all.at(-1),responsive=[];
    for(let i=0;i<ranges.length-1;i++){const delta=Object.fromEntries(Object.entries(all[i]).filter(([k,v])=>base[k]!==v));if(!Object.keys(delta).length)continue;const {sample,...range}=ranges[i];const last=responsive.at(-1);if(last&&JSON.stringify(last.styles)===JSON.stringify(delta)&&last.maxWidth===range.minWidth&&!(last.maxExclusive&&range.minExclusive)){last.maxWidth=range.maxWidth;last.maxExclusive=!!range.maxExclusive;}else responsive.push({...range,styles:delta});}
-   return {base,rules:responsive};
+   const result={base,rules:responsive};snapshots.set(el,result);return result;
   }
-  return {capture,warnings,fontFaces,fontStylesheets,breakpoints:edges};
+  // Only recognized animation fragments are eligible. Ordinary wrappers remain intact.
+  function canFlattenText(el,computed){
+   if(!normalizeMotion||el===root||el.localName!=='span'||!el.parentElement||!el.getAttributeNames)return false;
+   const names=(typeof el.className==='string'?el.className:'').trim().split(/\s+/);
+   if(!names.length||!names.every(n=>/^(?:gsap_split_(?:letter|word)\d*(?:-mask)?|split-(?:char|word)(?:-mask)?|word-blur)$/.test(n)))return false;
+   if(el.getAttributeNames().some(k=>!['class','style','aria-hidden'].includes(k)))return false;
+   if(el.hasAttribute('aria-hidden')&&el.getAttribute('aria-hidden')!=='true')return false;
+   const parent=el.parentElement,own=capture(el,computed),parentComputed=getComputedStyle(parent),parentSource=capture(parent,parentComputed);
+   const atWidth=(record,width)=>Object.assign({},record.base,...record.rules.filter(r=>(r.minExclusive?width>r.minWidth:width>=r.minWidth)&&(r.maxExclusive?width<r.maxWidth:width<=r.maxWidth)).map(r=>r.styles));
+   const inheritedValue=(node,key,width)=>{const record=capture(node,getComputedStyle(node)),value=atWidth(record,width)[key];return value==='inherit'&&node.parentElement?inheritedValue(node.parentElement,key,width):value;};
+   const neutral={width:['auto'],height:['auto'],minWidth:['auto','0px','0'],minHeight:['auto','0px','0'],maxWidth:['none'],maxHeight:['none'],position:['static','relative'],top:['auto','0px','0','0%'],right:['auto','0px','0','0%'],bottom:['auto','0px','0','0%'],left:['auto','0px','0','0%'],opacity:['1'],visibility:['visible','inherit'],transform:['none'],filter:['none'],backdropFilter:['none'],boxShadow:['none'],backgroundImage:['none'],backgroundColor:['transparent','rgba(0, 0, 0, 0)'],float:['none'],clear:['none'],order:['0'],flexGrow:['0'],flexShrink:['1'],flexBasis:['auto'],alignSelf:['auto'],justifySelf:['auto'],textDecorationLine:['none'],textDecoration:['none']};
+   for(const side of ['Top','Right','Bottom','Left']){neutral['margin'+side]=['0','0px'];neutral['padding'+side]=['0','0px'];neutral['border'+side+'Width']=['0','0px'];}
+   for(const range of ranges){const a=atWidth(own,range.sample),b=atWidth(parentSource,range.sample);
+    if(/flex|grid/.test(b.display||'')||!['inline','inline-block'].includes(a.display))return false;
+    for(const key of inherited)if(a[key]&&a[key]!=='inherit'&&inheritedValue(el,key,range.sample)!==inheritedValue(parent,key,range.sample))return false;
+    for(const [key,values]of Object.entries(neutral))if(a[key]&&!values.includes(a[key]))return false;
+    const allowedOverflow=names.some(n=>n.endsWith('-mask'))?['visible','clip','hidden']:['visible'];
+    for(const key of ['overflow','overflowX','overflowY'])if(a[key]&&!allowedOverflow.includes(a[key]))return false;
+   }
+   return true;
+  }
+  return {capture,canFlattenText,warnings,fontFaces,fontStylesheets,breakpoints:edges};
  }
  globalThis.__sorceriiSourceStyles={create};
 })();

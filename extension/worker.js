@@ -4,7 +4,7 @@ const patterns=[...ORIGINS].map(v=>v+'/*');
 let serial=Promise.resolve();
 const queue=fn=>{const p=serial.then(fn,fn);serial=p.catch(()=>{});return p;};
 export function allowedEditor(url){try{return ORIGINS.has(new URL(url).origin);}catch{return false;}}
-async function read(){return (await chrome.storage.local.get(['pending','lastError']));}
+async function read(){return (await chrome.storage.local.get(['pending','lastError','lastReceipt']));}
 async function handle(msg,sender){
  if(!msg||typeof msg.type!=='string')return {ok:false,error:'Invalid message.'};
  const fromPopup=!sender.tab&&sender.url===chrome.runtime.getURL('popup.html');
@@ -13,13 +13,13 @@ async function handle(msg,sender){
   if(!run||sender.tab?.id!==run.tabId||msg.token!==run.token||Date.now()-run.startedAt>300000)throw Error('This capture session expired. Start again.');
   if(msg.type==='SC_CAPTURED'){
    const {pending}=await read();if(pending)throw Error('A previous capture is still pending. Insert or discard it first.');
-   const capture=normalizeCapture(msg.capture);await chrome.storage.local.set({pending:{capture,offer:null},lastError:''});await chrome.action.setBadgeText({text:'1'});
+   const capture=normalizeCapture(msg.capture);await chrome.storage.local.set({pending:{capture,offer:null},lastError:'',lastReceipt:null});await chrome.action.setBadgeText({text:'1'});
   }
   await chrome.storage.session.remove('run');return {ok:true};
  }
  if(msg.type==='SC_RESOLVED'){
   const {pending}=await read();if(!pending?.offer||!allowedEditor(sender.tab?.url)||pending.offer.tabId!==sender.tab.id||msg.token!==pending.offer.token||msg.id!==pending.capture.id)throw Error('Unrecognized capture receipt.');
-  if(msg.status==='inserted'||msg.status==='discarded'){await chrome.storage.local.remove('pending');await chrome.action.setBadgeText({text:''});}return {ok:true};
+  if(msg.status==='inserted'||msg.status==='discarded'){await chrome.storage.local.set({lastReceipt:{status:msg.status,title:pending.capture.source?.title||'Website capture',count:pending.capture.count,at:Date.now()}});await chrome.storage.local.remove('pending');await chrome.action.setBadgeText({text:''});}return {ok:true};
  }
  if(!fromPopup)throw Error('Use the extension toolbar to start this action.');
  if(msg.type==='SC_STATE'){
@@ -33,11 +33,11 @@ async function handle(msg,sender){
   await chrome.scripting.executeScript({target:{tabId:tab.id},files:['source-styles.js','content.js']});
   await chrome.scripting.executeScript({target:{tabId:tab.id},func:options=>globalThis.__sorceriiCapture.start(options),args:[{mode:msg.mode==='page'?'page':'section',token,props:STYLE_PROPS,tags:[...TAGS]}]});return {ok:true};
  }
- if(msg.type==='SC_DISCARD'){await chrome.storage.local.remove('pending');await chrome.action.setBadgeText({text:''});return {ok:true};}
+ if(msg.type==='SC_DISCARD'){await chrome.storage.local.remove('pending');await chrome.storage.local.remove('lastReceipt');await chrome.action.setBadgeText({text:''});return {ok:true};}
  if(msg.type==='SC_SEND'){
   const {pending}=await read();if(!pending)throw Error('Capture a page or section first.');const tab=await chrome.tabs.get(msg.tabId);if(!allowedEditor(tab.url))throw Error('Choose a Sorcerii editor tab.');
   const offer={tabId:tab.id,token:crypto.randomUUID()};await chrome.storage.local.set({pending:{...pending,offer}});
-  try{await chrome.scripting.executeScript({target:{tabId:tab.id},files:['bridge.js']});const result=await chrome.tabs.sendMessage(tab.id,{type:'SC_OFFER',capture:pending.capture,token:offer.token});if(!result?.ok)throw Error(result?.error||'Open Sorcerii Studio and try again.');return {ok:true,status:result.status};}
+  try{await chrome.scripting.executeScript({target:{tabId:tab.id},files:['bridge.js']});const result=await chrome.tabs.sendMessage(tab.id,{type:'SC_OFFER',capture:pending.capture,token:offer.token});if(!result?.ok)throw Error(result?.error||'Open Sorcerii Studio and try again.');try{await chrome.tabs.update(tab.id,{active:true});}catch{}return {ok:true,status:result.status};}
   catch(e){throw Error('Could not stage the capture. Reload the Sorcerii tab, then send again. '+e.message);}
  }
  throw Error('Unknown extension action.');

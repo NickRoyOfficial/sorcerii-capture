@@ -9,3 +9,8 @@ test('rejects unsupported executable roots and unsafe URLs/styles',()=>{const f=
 test('form children survive without automatic demo state wrappers',()=>{const f=fixture();f.root.tag='form';const root=toProject(f).pages[0].sections[0].tree;assert.equal(root.attrs['data-t0-form-states'],'capture');assert.equal(root.children.length,2);});
 
 test("captured nodes bypass native library default seeding",()=>{const r=toProject(fixture()).pages[0].sections[0].tree;const visit=n=>{if(typeof n==='string')return;assert.equal(n.simpleDefaultsVersion,1);n.children.forEach(visit);};visit(r);});
+
+test('style cleanup removes only shorthands fully covered in the same block',()=>{
+ const f=fixture();f.root.sourceStyles={base:{gap:'8px',rowGap:'8px',columnGap:'12px',overflow:'hidden',overflowX:'clip',overflowY:'auto',borderWidth:'1px',borderTopWidth:'2px'},rules:[{minWidth:0,maxWidth:767,styles:{gap:'0px'}}]};
+ const clean=normalizeCapture(f).root.sourceStyles;assert.equal(clean.base.gap,undefined);assert.equal(clean.base.overflow,undefined);assert.equal(clean.base.rowGap,'8px');assert.equal(clean.base.borderWidth,'1px');assert.equal(clean.rules[0].styles.gap,'0px');
+});

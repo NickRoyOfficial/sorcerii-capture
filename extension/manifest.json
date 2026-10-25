@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sorcerii Capture",
   "description": "Capture a page or section as editable Sorcerii elements. Review before inserting.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "minimum_chrome_version": "120",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["https://sorcerii.com/*", "https://www.sorcerii.com/*", "https://sorceriistudio.nickroyofficial.chatgpt.site/*"],
