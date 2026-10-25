@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: development build 0.2.0 implements milestones 1 to 3. Automated checks cover the contract, hierarchy preservation, native insertion and failure paths. Whole-page edge cases and per-browser verification remain in progress. Readable source CSS width queries now remain scoped to captured elements. Cross-origin stylesheet restrictions and source JavaScript behavior remain limitations.
+Status: development build 0.2.1 implements milestones 1 to 3. Automated checks cover the contract, hierarchy preservation, native insertion and failure paths. Whole-page edge cases and per-browser verification remain in progress. Readable source CSS width queries now remain scoped to captured elements. Cross-origin stylesheet restrictions and source JavaScript behavior remain limitations.
 
 ## User requirements
 

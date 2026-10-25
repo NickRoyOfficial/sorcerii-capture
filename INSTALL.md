@@ -1,4 +1,4 @@
-# Install Sorcerii Capture 0.2.0
+# Install Sorcerii Capture 0.2.1
 
 This is an unpacked development build. Browser-specific end-to-end verification is still pending.
 
@@ -37,7 +37,7 @@ The extension requests access to the page you activate it on and the named Sorce
 1. In GitHub Desktop, select sorcerii-capture and click Fetch origin, then Pull origin when available.
 2. In Opera, open opera://extensions and click Reload on Sorcerii Capture.
 3. Refresh any source website and Sorcerii tabs that were already open.
-4. Open the extension to confirm its version reads 0.2.0.
+4. Open the extension to confirm its version reads 0.2.1.
 
 Load the clone's extension/ folder once. Keep that folder in place so future pulls update the installed files without reinstalling. Other Chromium browsers follow the same steps in their extension manager.
 

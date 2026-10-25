@@ -2,7 +2,7 @@
 
 Browser extension for capturing an entire web page or a selected section and importing its element hierarchy into Sorcerii Studio.
 
-**Status: development build 0.2.0.** Page/section capture, source width rules, fluid sizing, font references, motion cleanup, local conversion and confirmed editor delivery are implemented. Browser-specific end-to-end verification is pending.
+**Status: development build 0.2.1.** Page/section capture, source width rules, fluid sizing, font references, motion cleanup, local conversion and confirmed editor delivery are implemented. Browser-specific end-to-end verification is pending.
 
 See [INSTALL.md](INSTALL.md) for installation and current limitations.
 

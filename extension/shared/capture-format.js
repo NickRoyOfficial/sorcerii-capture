@@ -78,7 +78,8 @@ export function toProject(input,makeId=()=>crypto.randomUUID()){
   }
   // Preserve captured form children rather than installing demo success/error wrappers.
   if(n.tag==='form')attrs['data-t0-form-states']='capture';
-  return {id:makeId(),tag:n.tag,name:n.name,attrs,...(n.sourceStyles?{sourceStyles:n.sourceStyles}:{}),styles:{desktop:{...n.styles},tablet:{},mobile:{}},children:n.children.map(convert)};
+  // Source defaults are complete. Do not seed these nodes with library recipe defaults.
+  return {id:makeId(),tag:n.tag,name:n.name,attrs,simpleDefaultsVersion:1,...(n.sourceStyles?{sourceStyles:n.sourceStyles}:{}),styles:{desktop:{...n.styles},tablet:{},mobile:{}},children:n.children.map(convert)};
  };
  const tree=convert(capture.root),section={id:makeId(),name:tree.name||'Captured '+capture.mode,premade:false,rootElement:true,family:'cards',variant:'grid',blockId:'page-element',description:'Captured website elements',heading:'',body:'',cta:'',items:'',notes:'',role:'',density:'comfortable',tone:'light',visible:true,tree};
  return {schemaVersion:1,importedFonts:{fontFaces:capture.fontFaces,fontStylesheets:capture.fontStylesheets},id:makeId(),name:capture.source.title||'Captured website',business:'',industry:'',audience:'',goal:'',framework:'',notes:'Captured from '+capture.source.url+' at '+capture.source.width+'px. '+(capture.version===1?'Legacy current-width snapshot.':'Readable source width rules retained.'),templateId:'blank',pages:[{id:makeId(),name:'Captured page',slug:'',sections:[section]}]};
