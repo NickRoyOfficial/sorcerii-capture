@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: planning. Implementation has not started.
+Status: development build 0.1.0 implements milestones 1 to 3. Automated checks cover the contract, hierarchy preservation, native insertion and failure paths. Whole-page edge cases and per-browser verification remain in progress. Responsive reconstruction remains future work.
 
 ## User requirements
 

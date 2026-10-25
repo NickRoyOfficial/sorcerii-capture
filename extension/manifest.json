@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Sorcerii Capture",
+  "description": "Capture a page or section as editable Sorcerii elements. Review before inserting.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "120",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://sorcerii.com/*", "https://www.sorcerii.com/*", "https://sorceriistudio.nickroyofficial.chatgpt.site/*"],
+  "background": {"service_worker": "worker.js", "type": "module"},
+  "action": {"default_popup": "popup.html", "default_title": "Sorcerii Capture"},
+  "icons": {"16":"icons/icon-16.png", "48":"icons/icon-48.png", "128":"icons/icon-128.png"},
+  "content_scripts": [{
+    "matches": ["https://sorcerii.com/*", "https://www.sorcerii.com/*", "https://sorceriistudio.nickroyofficial.chatgpt.site/*"],
+    "js": ["bridge.js"], "run_at": "document_idle", "all_frames": false
+  }]
+}

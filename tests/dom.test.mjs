@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs';
+import {TAGS,STYLE_PROPS,normalizeCapture} from '../extension/shared/capture-format.js';
+const code=fs.readFileSync(new URL('../extension/content.js',import.meta.url),'utf8');
+function element(tag,attrs={},children=[]){return {nodeType:1,localName:tag,id:attrs.id||'',className:attrs.class||'',children:children.filter(c=>c.nodeType===1),childNodes:children,textContent:children.map(c=>c.textContent).join(''),getAttribute:k=>attrs[k]??null,hasAttribute:k=>k in attrs,currentSrc:attrs.src,shadowRoot:null};}
+const text=value=>({nodeType:3,textContent:value});
+function engine(){const context=vm.createContext({crypto:globalThis.crypto,location:{href:'https://example.com/',hostname:'example.com'},document:{baseURI:'https://example.com/',title:'Fixture'},getComputedStyle:()=>({display:'block',fontSize:'16px'}),innerWidth:1200,innerHeight:800,URL,Date});vm.runInContext(code,context);return context.__sorceriiCapture;}
+test('DOM capture preserves wrappers and sibling order while omitting scripts and SVG internals',()=>{const root=element('section',{},[element('div',{id:'wrapper'},[text('A'),element('span',{},[text('B')])]),element('script',{},[text('alert(1)')]),element('svg',{},[element('path')]),element('p',{},[text('C')])]);const result=engine().snapshot(root,{mode:'section',tags:[...TAGS],props:STYLE_PROPS});const c=normalizeCapture(JSON.parse(JSON.stringify(result)));assert.equal(c.root.children.length,3);assert.equal(c.root.children[0].attrs.id,'wrapper');assert.equal(c.root.children[0].children[1].tag,'span');assert.equal(c.root.children[1].name,'SVG (omitted)');assert.deepEqual(c.root.children[2].children,['C']);assert.ok(c.warnings.some(w=>w.includes('placeholders')));});
+test('capture does not read live input values or textarea content',()=>{const input=element('input',{type:'text',value:'private'});Object.defineProperty(input,'value',{get(){throw Error('Live values must not be read');}});const result=engine().snapshot(element('form',{},[input,element('textarea',{},[text('private')])]),{mode:'section',tags:[...TAGS],props:STYLE_PROPS});assert.equal(result.root.children[0].attrs.value,undefined);assert.equal(result.root.children[1].children.length,0);});
